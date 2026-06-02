@@ -1,273 +1,168 @@
-# pan-cli - 多网盘命令行平台设计方案
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img.shields.io/badge/go-%3E%3D1.22-blue.svg)](https://go.dev/)
 
-`pan-cli` 是一个面向人类用户、脚本和 AI Agent 的多网盘 CLI 平台。项目先实现 115 网盘，后续扩展百度网盘、阿里云盘等 provider。核心原则是：**统一 CLI 契约、统一凭证与输出基础设施、provider 独立适配具体网盘能力**。
+[中文版](./README.md)
 
----
+`panctl` 是一个面向人类用户、自动化脚本和 AI Agent 的多网盘统一命令行平台。首期已完整支持 115 网盘，后续逐步扩展百度网盘、阿里云盘等供应商。核心原则是：**统一 CLI 契约、统一凭证与输出基础设施、各网盘 Provider 独立适配**。
 
-## 设计目标
-
-1. 提供统一入口 `pan`，支持跨网盘操作和统一 target 语法。
-2. 保留 provider 专属入口，例如 `115-cli`、`baidu-cli`、`aliyun-cli`，降低单网盘用户的使用成本。
-3. 所有入口共享同一套 Go core、JSON 输出契约、错误码、配置、凭证和 npm 安装逻辑。
-4. provider 只实现具体网盘 API、认证流程和差异化能力，避免复制 CLI 框架。
-5. AI Skill 只依赖稳定机器契约，不依赖人类输出文案。
+[安装与快速开始](#安装与快速开始) · [双层命令调用](#双层命令调用) · [认证设计](#认证设计) · [安全与防泄露](#安全与风险提示使用前必读) · [贡献](#贡献)
 
 ---
 
-## 推荐仓库结构
+## 为什么选择 panctl？
 
-```text
-pan/
-├── README.md
-├── go.work
-├── go.mod
-├── go.sum
-├── Makefile
-├── package.json
-│
-├── docs/
-│   ├── contracts/
-│   │   ├── json-output.md
-│   │   ├── errors.md
-│   │   └── provider-capabilities.md
-│   └── providers/
-│       ├── 115.md
-│       ├── baidu.md
-│       └── aliyun.md
-│
-├── cmd/
-│   ├── pan/                       # 统一入口：pan ls 115:/path
-│   ├── 115-cli/                   # 兼容入口：115-cli ls /path
-│   ├── baidu-cli/                 # 兼容入口：baidu-cli ls /path
-│   └── aliyun-cli/                # 兼容入口：aliyun-cli ls /path
-│
-├── internal/
-│   ├── app/                       # CLI 装配、命令注册、入口模式切换
-│   ├── config/                    # profile、配置目录、权限、迁移
-│   ├── credential/                # Keychain/Credential Manager/Secret Service/file fallback
-│   ├── output/                    # JSON、人类表格、错误输出
-│   ├── resolver/                  # pan target 解析：115:/a、baidu:/b
-│   ├── transfer/                  # 上传、下载、进度、断点续传通用能力
-│   └── release/                   # version、build metadata
-│
-├── pkg/
-│   ├── contract/                  # 稳定对外类型：FileInfo、Error、Pagination
-│   └── provider/                  # Provider interface 与能力声明
-│
-├── providers/
-│   ├── 115/
-│   │   ├── auth/
-│   │   ├── client/
-│   │   ├── commands/
-│   │   └── provider.go
-│   ├── baidu/
-│   │   ├── auth/
-│   │   ├── client/
-│   │   ├── commands/
-│   │   └── provider.go
-│   └── aliyun/
-│       ├── auth/
-│       ├── client/
-│       ├── commands/
-│       └── provider.go
-│
-├── npm/
-│   ├── pan-cli/
-│   ├── 115-cli/
-│   ├── baidu-cli/
-│   └── aliyun-cli/
-│
-├── scripts/
-│   ├── run.js
-│   ├── install.js
-│   └── install-wizard.js
-│
-└── skills/
-    ├── pan-cli/
-    ├── 115-cli/
-    ├── baidu-cli/
-    └── aliyun-cli/
-```
+- **为 Agent 原生设计** — 支持全局 `--json` 标志，输出结构化且契约稳定的单行 JSON，错误输出经过脱敏，AI Agent 可以无缝、安全地进行自动化调度。
+- **功能完备 (Phase 1)** — 首期已支持 Cookie/扫码登录、状态查询、绝对路径/ID 级别解析、常规文件系统变动（ls/mkdir/mv/cp/rename/rm）、安全下载及离线下载任务控制。
+- **原子性下载保护** — 采用临时文件写入 + 成功后原子重命名的机制，防止中途网络中断或异常退出 clobber（损坏）本地已有的目标文件。
+- **三层架构设计** — 共享的核心凭证存储（Keychain/OS 密钥链与本地 0600 文件回退）、路径解析层，以及插拔式的网盘 Provider 层，保持架构极度清爽。
+- **双入口调用** — 支持统一入口 `pan` 跨网盘操作，同时支持专属入口 `115-cli`，直接绑定默认 provider 降低使用成本。
 
 ---
 
-## 入口设计
+## 功能矩阵
 
-### 统一入口
+| 类别 | 模块能力 | 命令行参数例 | 说明 |
+| :--- | :--- | :--- | :--- |
+| 🔐 **凭证认证** | Cookie 导入、扫码登录、状态查询、登出 | `login cookie`, `login qr`, `status` | 支持 OS 密钥链及 0600 文件回退，防止凭证泄漏。 |
+| 📂 **常规文件** | 列目录、分页检索、全量加载、元数据获取 | `ls [target]`, `ls / --all` | 支持绝对路径与 115 ID 两种 target。 |
+| 🛠️ **文件变动** | 新建文件夹、重命名、移动、复制、删除 | `mkdir`, `rename`, `mv`, `cp`, `rm` | 支持多 target 统一解析与原子批处理，不进行无效的 API 调用。 |
+| ⚡ **安全下载** | 下载 URL 提取、Header 获取、原子断点下载 | `download <target> --output` | 未指定 output 时仅输出下载 URL 与 UA headers，指定后安全写入。 |
+| 📥 **离线任务** | 离线任务添加、列表查询、删除、等待轮询 | `offline add`, `offline wait <gid>` | 原生适配 115 离线磁力与 HTTP 任务，支持轮询与超时监控。 |
 
-`pan` 是完整能力入口，target 必须显式带 provider：
+---
 
+## 安装与快速开始
+
+### 环境要求
+* Go 1.22+（编译安装）
+* 运行环境：Mac/Linux/Windows 终端
+
+### 1. 编译安装
 ```bash
-pan ls 115:/电影
-pan ls baidu:/资料
-pan download aliyun:/backup/a.zip --output ./a.zip
-pan cp 115:/a.zip aliyun:/backup/
+git clone https://github.com/onetreegrove/panctl.git
+cd panctl
+
+# 编译出多网盘主入口 (pan) 以及 115 专属入口 (115-cli)
+go build ./cmd/pan ./cmd/115-cli
 ```
 
-统一入口适合跨网盘迁移、聚合搜索、AI Agent 编排和自动化脚本。
+### 2. 账号登录（人类用户）
+* **方式一：Cookie 登录**
+  ```bash
+  # 交互式粘贴或使用 stdin 安全输入
+  echo "UID=xxx; CID=xxx; SEID=xxx; KID=xxx" | ./115-cli login cookie --stdin
+  ```
+* **方式二：扫码登录 (QR)**
+  ```bash
+  # 1. 启动扫码会话，生成 115 App 登录链接
+  ./115-cli login qr
+  
+  # 2. 手机 115 App 扫码同意后，用输出的 session_id 确认并登录
+  ./115-cli login wait <session_id>
+  ```
 
-### Provider 专属入口
-
-专属入口只是在启动时注入默认 provider，不复制业务逻辑：
-
+### 3. 开始使用
 ```bash
-115-cli ls /电影
-baidu-cli ls /资料
-aliyun-cli ls /backup
-```
+# 查询登录状态
+./115-cli login status
 
-等价关系：
-
-```bash
-115-cli ls /电影
-pan --provider 115 ls /电影
-pan ls 115:/电影
+# 列出根目录下的文件
+./115-cli ls /
 ```
 
 ---
 
-## 公共命令与 Provider 特殊命令
+## 快速开始（AI Agent）
 
-公共命令只覆盖跨网盘最小文件系统能力：
+如果您是 AI 编码助手或 Agent，请按如下流程操作：
 
-| 命令 | 说明 |
-| --- | --- |
-| `login` / `logout` / `login status` | 认证生命周期 |
-| `ls` | 列目录 |
-| `mkdir` | 创建目录 |
-| `rm` | 删除 |
-| `mv` | 移动 |
-| `cp` | 复制 |
-| `rename` | 重命名 |
-| `download` | 下载或生成下载链接 |
-| `upload` | 上传 |
-| `search` | 搜索 |
-| `info` | 账号、容量、版本信息 |
-
-Provider 特殊命令放在 provider 自己的命名空间或专属入口下：
-
-```bash
-115-cli offline add <url>
-115-cli offline wait <gid>
-baidu-cli rapid-upload <file>
-aliyun-cli share create <target>
-```
-
-不要为了统一而把 `offline`、`rapid-upload`、`share`、`秒传` 等能力塞进公共接口。公共层通过 capability 判断某个 provider 是否支持某项能力。
+1. **调用构建**: 运行 `go test ./... && go build ./cmd/pan ./cmd/115-cli` 确保本地环境可用。
+2. **凭证检查**: 运行 `./115-cli --json login status` 获取登录状态。若未登录，则读取环境变量中的 Cookie 或引导人类用户扫码。
+3. **调用参数**: 始终在命令后追加 `--json` 参数，获取易于解析的机器响应对象。例如：
+   ```bash
+   ./115-cli --json ls /电影
+   ```
 
 ---
 
-## Provider 抽象
+## 双层命令调用
 
-Provider 接口只描述最小稳定边界：
+### 1. 统一入口 `pan`
+适用于跨网盘聚合操作，target 必须显式指定 provider 命名空间：
+```bash
+./pan ls 115:/电影
+./pan cp 115:/a.zip baidu:/backup/  # 跨网盘迁移（规划中）
+```
 
-```go
-type Provider interface {
-    Name() string
-    Capabilities() Capabilities
-    Auth() AuthService
-    Files() FileService
-}
+### 2. Provider 专属入口 `115-cli`
+在启动时自动注入默认的 provider 为 `115`，省去路径前缀输入：
+```bash
+./115-cli ls /电影
+```
 
-type Capabilities struct {
-    Upload        bool
-    Download      bool
-    OfflineTask   bool
-    Share         bool
-    RecycleBin    bool
-    PathLookup    bool
-    CrossTransfer bool
+---
+
+## 进阶与输出格式
+
+可以通过 `--json` 让 CLI 输入输出完全走 JSON 通信。
+
+### 成功响应格式
+```json
+{
+  "status": "ok",
+  "data": {
+    "items": [
+      {
+        "id": "123456789",
+        "name": "demo.mp4",
+        "type": "file",
+        "size": 1048576,
+        "sha1": "ABCDEF...",
+        "pick_code": "ecjq9i...",
+        "provider": "115"
+      }
+    ]
+  },
+  "meta": {
+    "provider": "115",
+    "profile": "default",
+    "request_id": "req_20260602_172054"
+  }
 }
 ```
 
-公共命令只依赖 `AuthService`、`FileService` 和 capability。Provider 特殊命令可以直接依赖 provider 内部 client，但输出仍必须遵守通用 JSON 与错误契约。
-
----
-
-## 配置与凭证目录
-
-统一使用 `~/.config/pan-cli`，不要为每个网盘建立互不兼容的配置体系：
-
-```text
-~/.config/pan-cli/
-├── config.json
-├── profiles/
-│   ├── 115.default.json
-│   ├── baidu.default.json
-│   └── aliyun.default.json
-└── credentials/
-    ├── 115.default.json
-    ├── baidu.default.json
-    └── aliyun.default.json
+### 异常响应与错误码
+错误响应中包含公共错误码、脱敏的错误信息以及是否可重试标志：
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "AUTH_EXPIRED",
+    "message": "115 authentication expired.",
+    "detail": "sso check failed",
+    "retryable": false
+  },
+  "meta": {
+    "provider": "115",
+    "profile": "default",
+    "request_id": "req_20260602_172054"
+  }
+}
 ```
 
-凭证优先写入系统安全存储：
-
-1. macOS Keychain。
-2. Windows Credential Manager。
-3. Linux Secret Service。
-4. 不可用时回退到 `credentials/<provider>.<profile>.json`，目录权限 `0700`，文件权限 `0600`。
-
-日志、JSON、错误 detail 和 panic 输出都不得包含 Cookie、Token、Refresh Token 原文。
+关于核心退出码映射请查阅 [错误码契约](docs/contracts/errors.md)。
 
 ---
 
-## 输出与错误契约
+## 安全与风险提示（使用前必读）
 
-所有入口和 provider 共享同一套机器契约：
-
-1. `--json` 下 stdout 只能输出一个完整 JSON 对象。
-2. 调试日志、进度、网络细节写入 stderr。
-3. 成功响应包含 `status=data/meta`。
-4. 分页响应包含 `pagination`。
-5. 错误响应包含稳定 `error.code` 和非 0 退出码。
-
-详见：
-
-- [JSON 输出契约](docs/contracts/json-output.md)
-- [错误码契约](docs/contracts/errors.md)
-- [Provider 能力契约](docs/contracts/provider-capabilities.md)
+1. **凭证脱敏保障**：在全局错误输出、日志流和 panic trace 中，涉及 `UID=`、`CID=`、`SEID=`、`KID=` 等任何敏感鉴权字段，均会在写入控制台或管道前被过滤脱敏为 `***`，彻底规避 AI Agent 将敏感凭证录入 context 或对外泄露的风险。
+2. **私有存储权限**：如果系统安全密钥链（OS Keychain）不可用，本地回退保存的凭证目录权限强制为 `0700`，文件权限强制为 `0600`，仅当前操作系统用户可读写。
+3. **谨慎对外暴露**：本工具建议仅作为私人终端或 Agent 执行沙箱内的助手工具。请勿将此 CLI 暴露于公开无鉴权的 Web 接口或群聊环境中，以免导致网盘数据泄露或被恶意删除。
 
 ---
 
-## npm 分发策略
+## 许可证
 
-发布多个 npm 包，但它们共享同一套二进制和安装脚本：
-
-| npm 包 | bin | 默认行为 |
-| --- | --- | --- |
-| `pan-cli` | `pan` | 统一入口 |
-| `115-cli` | `115-cli` | 默认 provider 为 `115` |
-| `baidu-cli` | `baidu-cli` | 默认 provider 为 `baidu` |
-| `aliyun-cli` | `aliyun-cli` | 默认 provider 为 `aliyun` |
-
-npm 包装层只负责：
-
-1. 检查当前平台二进制是否存在。
-2. 下载并校验 Release artifact 的 SHA256。
-3. 透传 stdin/stdout/stderr、参数、信号和退出码。
-
----
-
-## Implementation Status
-
-| Provider | Phase | Status |
-| --- | --- | --- |
-| 115 | Phase 1 | Cookie/QR login, files, download links, offline tasks |
-| 115 | Phase 2 | Upload planned |
-| 115 | Phase 3 | Share-link read-only planned |
-| Baidu | Planning | Provider document only |
-| Aliyun | Planning | Provider document only |
-
----
-
-## 开发顺序
-
-1. 建立根级 `pan-cli` monorepo 结构和通用契约文档。
-2. 实现 `pan` 入口、公共输出、错误码、配置、凭证和 provider registry。
-3. 将 115 作为第一个 provider 落地，实现登录、`ls`、`download`、`search`。
-4. 补齐 115 变更类命令和离线任务特殊命令。
-5. 增加 `115-cli` npm 包和 Skill。
-6. 按同一 provider interface 增加百度网盘。
-7. 增加阿里云盘。
-8. 实现跨 provider 的复制、迁移、聚合搜索等高级能力。
+本项目基于 **MIT 许可证** 开源。
+本软件调用 115 网盘开放或底层 API，使用这些 API 请遵守相关平台的服务协议和隐私政策。
