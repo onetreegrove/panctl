@@ -32,6 +32,7 @@ func Run(opts Options) int {
 	root.PersistentFlags().StringVar(&rt.ConfigDir, "config-dir", "", "config directory")
 	root.AddCommand(loginCommand(rt))
 	root.AddCommand(filesCommand(rt)...)
+	root.AddCommand(offlineCommand(rt))
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		return 1
