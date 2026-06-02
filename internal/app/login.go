@@ -5,19 +5,23 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"time"
 
+	driver115 "github.com/SheltonZhu/115driver/pkg/driver"
 	"github.com/justonetree/pan-cli/internal/config"
 	"github.com/justonetree/pan-cli/internal/credential"
 	"github.com/justonetree/pan-cli/internal/output"
 	"github.com/justonetree/pan-cli/pkg/contract"
 	auth115 "github.com/justonetree/pan-cli/providers/115/auth"
 	client115 "github.com/justonetree/pan-cli/providers/115/client"
+	model115 "github.com/justonetree/pan-cli/providers/115/model"
 	"github.com/spf13/cobra"
 )
 
 func loginCommand(rt *Runtime) *cobra.Command {
 	cmd := &cobra.Command{Use: "login"}
-	cmd.AddCommand(loginCookieCommand(rt), loginStatusCommand(rt), logoutCommand(rt))
+	cmd.AddCommand(loginCookieCommand(rt), loginStatusCommand(rt), logoutCommand(rt), loginQRCommand(rt), loginWaitCommand(rt))
 	return cmd
 }
 
@@ -111,3 +115,159 @@ func logoutCommand(rt *Runtime) *cobra.Command {
 		},
 	}
 }
+
+func loginQRCommand(rt *Runtime) *cobra.Command {
+	var source string
+	cmd := &cobra.Command{
+		Use: "qr",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := client115.New(2)
+			sess, err := c.QRCodeStart(cmd.Context())
+			if err != nil {
+				handleErr(rt, contract.Meta{Provider: "115", Profile: rt.Profile, RequestID: requestID()}, err)
+				return nil
+			}
+
+			sessionID := sess.UID
+			base := rt.ConfigDir
+			if base == "" {
+				base = config.DefaultBaseDir()
+			}
+			dir := filepath.Join(base, "115-login")
+			
+			qrSess := auth115.QRSession{
+				SessionID: sessionID,
+				Token:     sess.UID,
+				Sign:      sess.Sign,
+				Time:      sess.Time,
+				LoginURL:  sess.QrcodeContent,
+				Source:    source,
+				ExpiresAt: time.Now().Add(time.Minute * 5),
+			}
+
+			if err := auth115.SaveQRSession(dir, qrSess); err != nil {
+				handleErr(rt, contract.Meta{Provider: "115", Profile: rt.Profile, RequestID: requestID()}, err)
+				return nil
+			}
+
+			meta := contract.Meta{Provider: "115", Profile: rt.Profile, RequestID: requestID()}
+			if rt.JSON {
+				code := output.WriteOK(os.Stdout, os.Stderr, meta, map[string]any{
+					"session_id": sessionID,
+					"login_url":  sess.QrcodeContent,
+					"expires_at": qrSess.ExpiresAt.Format(time.RFC3339),
+				})
+				os.Exit(code)
+			}
+
+			fmt.Fprintf(os.Stdout, "Scan this URL with your 115 App to login: %s\n", sess.QrcodeContent)
+			fmt.Fprintf(os.Stdout, "After scanning, run: 115-cli login wait %s\n", sessionID)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&source, "source", "linux", "115 login source: linux, web, android, etc.")
+	return cmd
+}
+
+func loginWaitCommand(rt *Runtime) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:  "wait <session_id>",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			sessionID := args[0]
+			base := rt.ConfigDir
+			if base == "" {
+				base = config.DefaultBaseDir()
+			}
+			dir := filepath.Join(base, "115-login")
+			qrSess, err := auth115.LoadQRSession(dir, sessionID)
+			if err != nil {
+				handleErr(rt, contract.Meta{Provider: "115", Profile: rt.Profile, RequestID: requestID()}, err)
+				return nil
+			}
+
+			c := client115.New(2)
+			sess := &driver115.QRCodeSession{
+				UID:           qrSess.Token,
+				Sign:          qrSess.Sign,
+				Time:          qrSess.Time,
+				QrcodeContent: qrSess.LoginURL,
+			}
+
+			meta := contract.Meta{Provider: "115", Profile: rt.Profile, RequestID: requestID()}
+			var rawCred *driver115.Credential
+			start := time.Now()
+			for {
+				status, err := c.QRCodeStatus(cmd.Context(), sess)
+				if err != nil {
+					handleErr(rt, meta, err)
+					return nil
+				}
+
+				if status.IsAllowed() {
+					rawCred, err = c.QRCodeLoginWithApp(cmd.Context(), sess, qrSess.Source)
+					if err != nil {
+						handleErr(rt, meta, err)
+						return nil
+					}
+					break
+				} else if status.IsCanceled() {
+					errCanceled := contract.NewError(contract.CodeAuthExpired, "QR login was canceled by user.", "", false)
+					if rt.JSON {
+						code := output.WriteError(os.Stdout, os.Stderr, meta, errCanceled)
+						os.Exit(code)
+					}
+					fmt.Fprintln(os.Stderr, "Error: Login canceled by user")
+					os.Exit(contract.ExitCode(contract.CodeAuthExpired))
+				} else if status.IsExpired() {
+					errExpired := contract.NewError(contract.CodeAuthExpired, "QR login session expired.", "", false)
+					if rt.JSON {
+						code := output.WriteError(os.Stdout, os.Stderr, meta, errExpired)
+						os.Exit(code)
+					}
+					fmt.Fprintln(os.Stderr, "Error: Login session expired")
+					os.Exit(contract.ExitCode(contract.CodeAuthExpired))
+				}
+
+				if time.Since(start) > 5*time.Minute {
+					errTimeout := contract.NewError(contract.CodeAuthExpired, "QR login timeout exceeded.", "", false)
+					if rt.JSON {
+						code := output.WriteError(os.Stdout, os.Stderr, meta, errTimeout)
+						os.Exit(code)
+					}
+					fmt.Fprintln(os.Stderr, "Error: Timeout waiting for QR login")
+					os.Exit(contract.ExitCode(contract.CodeAuthExpired))
+				}
+
+				time.Sleep(2 * time.Second)
+			}
+
+			cred := model115.Credential{
+				UID:  rawCred.UID,
+				CID:  rawCred.CID,
+				SEID: rawCred.SEID,
+				KID:  rawCred.KID,
+			}
+
+			store := credential.NewFileStore(base)
+			payload, _ := json.Marshal(cred)
+			if err := store.Save("115", rt.Profile, payload); err != nil {
+				handleErr(rt, meta, err)
+				return nil
+			}
+
+			if rt.JSON {
+				code := output.WriteOK(os.Stdout, os.Stderr, meta, map[string]any{
+					"authenticated": true,
+					"uid":           cred.RedactedUID(),
+				})
+				os.Exit(code)
+			}
+
+			fmt.Fprintf(os.Stdout, "Logged in to 115 via QR as %s\n", cred.RedactedUID())
+			return nil
+		},
+	}
+	return cmd
+}
+
