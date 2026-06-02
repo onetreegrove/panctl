@@ -1,11 +1,14 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/spf13/cobra"
+	client115 "github.com/justonetree/pan-cli/providers/115/client"
+	commands115 "github.com/justonetree/pan-cli/providers/115/commands"
 )
 
 type Options struct {
@@ -33,6 +36,15 @@ func Run(opts Options) int {
 	root.AddCommand(loginCommand(rt))
 	root.AddCommand(filesCommand(rt)...)
 	root.AddCommand(offlineCommand(rt))
+
+	getClientHelper := func() (*client115.Client, error) {
+		c, _, err := getClient(rt, context.Background())
+		return c, err
+	}
+	getJSONHelper := func() bool {
+		return rt.JSON
+	}
+	root.AddCommand(commands115.ShareCommands(getClientHelper, getJSONHelper)...)
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		return 1

@@ -28,8 +28,16 @@ func (c *Client) Wait(ctx context.Context) error {
 	return c.limiter.Wait(ctx)
 }
 
-func (c *Client) LoginCookie(ctx context.Context, cred model115.Credential) error {
+func (c *Client) init(ctx context.Context) error {
 	if err := c.Wait(ctx); err != nil {
+		return err
+	}
+	c.ensureAppVersion(ctx)
+	return nil
+}
+
+func (c *Client) LoginCookie(ctx context.Context, cred model115.Credential) error {
+	if err := c.init(ctx); err != nil {
 		return err
 	}
 	rawCred := &driver115.Credential{}
@@ -41,21 +49,21 @@ func (c *Client) LoginCookie(ctx context.Context, cred model115.Credential) erro
 }
 
 func (c *Client) QRCodeStart(ctx context.Context) (*driver115.QRCodeSession, error) {
-	if err := c.Wait(ctx); err != nil {
+	if err := c.init(ctx); err != nil {
 		return nil, err
 	}
 	return c.raw.QRCodeStart()
 }
 
 func (c *Client) QRCodeStatus(ctx context.Context, s *driver115.QRCodeSession) (*driver115.QRCodeStatus, error) {
-	if err := c.Wait(ctx); err != nil {
+	if err := c.init(ctx); err != nil {
 		return nil, err
 	}
 	return c.raw.QRCodeStatus(s)
 }
 
 func (c *Client) QRCodeLoginWithApp(ctx context.Context, s *driver115.QRCodeSession, source string) (*driver115.Credential, error) {
-	if err := c.Wait(ctx); err != nil {
+	if err := c.init(ctx); err != nil {
 		return nil, err
 	}
 	return c.raw.QRCodeLoginWithApp(s, driver115.LoginApp(source))

@@ -474,7 +474,56 @@ func filesCommand(rt *Runtime) []*cobra.Command {
 		},
 	}
 
-	return []*cobra.Command{lsCmd, downloadCmd, mkdirCmd, mvCmd, cpCmd, renameCmd, rmCmd}
+	uploadCmd := &cobra.Command{
+		Use:   "upload <local-file-path> <target-dir>",
+		Short: "Upload a local file to 115",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			localPath := args[0]
+			targetDir := args[1]
+			c, meta, err := getClient(rt, cmd.Context())
+			if err != nil {
+				handleErr(rt, meta, err)
+				return nil
+			}
+			destInfo, err := resolver.Resolve(cmd.Context(), resolverLister{ctx: cmd.Context(), c: c}, targetDir)
+			if err != nil {
+				handleErr(rt, meta, err)
+				return nil
+			}
+			if destInfo.Type != contract.FileTypeDir {
+				handleErr(rt, meta, fmt.Errorf("target is not a directory: %s", targetDir))
+				return nil
+			}
+
+			progress := func(percent float64) {
+				if !rt.JSON {
+					fmt.Fprintf(os.Stderr, "\rUploading... %.1f%%", percent)
+				}
+			}
+			file, err := c.Upload(cmd.Context(), localPath, destInfo.ID, progress)
+			if err != nil {
+				handleErr(rt, meta, err)
+				return nil
+			}
+			if !rt.JSON {
+				fmt.Fprintln(os.Stderr, "\nUpload complete!")
+			}
+
+			contractFile := file.ToContract(path.Join(destInfo.Path, file.Name))
+			if rt.JSON {
+				code := output.WriteOK(os.Stdout, os.Stderr, meta, map[string]any{
+					"file": contractFile,
+				})
+				os.Exit(code)
+			}
+
+			fmt.Fprintf(os.Stdout, "Uploaded File ID: %s\tSize: %d\tName: %s\n", contractFile.ID, contractFile.Size, contractFile.Name)
+			return nil
+		},
+	}
+
+	return []*cobra.Command{lsCmd, downloadCmd, mkdirCmd, mvCmd, cpCmd, renameCmd, rmCmd, uploadCmd}
 }
 
 func downloadFile(ctx context.Context, urlStr string, headers map[string][]string, outputPath string) error {

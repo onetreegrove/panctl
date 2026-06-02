@@ -29,14 +29,14 @@ type fileListRespWithThumb struct {
 }
 
 func (c *Client) List(ctx context.Context, dirID string, page, limit int) (ListResult, error) {
-	if err := c.Wait(ctx); err != nil {
+	if err := c.init(ctx); err != nil {
 		return ListResult{}, err
 	}
 	return listPage(ctx, c.raw, dirID, page, limit)
 }
 
 func (c *Client) DownloadURL(ctx context.Context, pickCode, userAgent string) (string, map[string][]string, error) {
-	if err := c.Wait(ctx); err != nil {
+	if err := c.init(ctx); err != nil {
 		return "", nil, err
 	}
 	info, err := c.raw.DownloadWithUA(pickCode, userAgent)
@@ -47,35 +47,35 @@ func (c *Client) DownloadURL(ctx context.Context, pickCode, userAgent string) (s
 }
 
 func (c *Client) Mkdir(ctx context.Context, parentID, name string) (string, error) {
-	if err := c.Wait(ctx); err != nil {
+	if err := c.init(ctx); err != nil {
 		return "", err
 	}
 	return c.raw.Mkdir(parentID, name)
 }
 
 func (c *Client) Move(ctx context.Context, dirID string, fileIDs ...string) error {
-	if err := c.Wait(ctx); err != nil {
+	if err := c.init(ctx); err != nil {
 		return err
 	}
 	return c.raw.Move(dirID, fileIDs...)
 }
 
 func (c *Client) Copy(ctx context.Context, dirID string, fileIDs ...string) error {
-	if err := c.Wait(ctx); err != nil {
+	if err := c.init(ctx); err != nil {
 		return err
 	}
 	return c.raw.Copy(dirID, fileIDs...)
 }
 
 func (c *Client) Rename(ctx context.Context, fileID, newName string) error {
-	if err := c.Wait(ctx); err != nil {
+	if err := c.init(ctx); err != nil {
 		return err
 	}
 	return c.raw.Rename(fileID, newName)
 }
 
 func (c *Client) Delete(ctx context.Context, fileIDs ...string) error {
-	if err := c.Wait(ctx); err != nil {
+	if err := c.init(ctx); err != nil {
 		return err
 	}
 	return c.raw.Delete(fileIDs...)

@@ -23,5 +23,7 @@ func (Provider) Capabilities() provider.Capabilities {
 		Remove:      true,
 		Download:    true,
 		OfflineTask: true,
+		Upload:      true, // Enable upload capability
+		Share:       true, // Enable share capability
 	}
 }

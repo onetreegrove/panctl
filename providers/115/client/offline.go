@@ -8,7 +8,7 @@ import (
 )
 
 func (c *Client) OfflineList(ctx context.Context) ([]model115.OfflineTask, error) {
-	if err := c.Wait(ctx); err != nil {
+	if err := c.init(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := c.raw.ListOfflineTask(0)
@@ -19,7 +19,7 @@ func (c *Client) OfflineList(ctx context.Context) ([]model115.OfflineTask, error
 }
 
 func (c *Client) OfflineAdd(ctx context.Context, uris []string, dstDirID string) ([]string, error) {
-	if err := c.Wait(ctx); err != nil {
+	if err := c.init(ctx); err != nil {
 		return nil, err
 	}
 	// Note: We need to use raw.AddOfflineTaskURIs and pass AppVersion if required,
@@ -28,7 +28,7 @@ func (c *Client) OfflineAdd(ctx context.Context, uris []string, dstDirID string)
 }
 
 func (c *Client) OfflineDelete(ctx context.Context, hashes []string, deleteFiles bool) error {
-	if err := c.Wait(ctx); err != nil {
+	if err := c.init(ctx); err != nil {
 		return err
 	}
 	return c.raw.DeleteOfflineTasks(hashes, deleteFiles)
