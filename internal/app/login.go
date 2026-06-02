@@ -16,12 +16,17 @@ import (
 	auth115 "github.com/justonetree/pan-cli/providers/115/auth"
 	client115 "github.com/justonetree/pan-cli/providers/115/client"
 	model115 "github.com/justonetree/pan-cli/providers/115/model"
+	clientBaidu "github.com/justonetree/pan-cli/providers/baidu/client"
+	modelBaidu "github.com/justonetree/pan-cli/providers/baidu/model"
 	"github.com/spf13/cobra"
 )
 
 func loginCommand(rt *Runtime) *cobra.Command {
 	cmd := &cobra.Command{Use: "login"}
 	cmd.AddCommand(loginCookieCommand(rt), loginStatusCommand(rt), logoutCommand(rt), loginQRCommand(rt), loginWaitCommand(rt))
+	if rt.providerName() == "baidu" {
+		cmd.AddCommand(loginRefreshTokenCommand(rt))
+	}
 	return cmd
 }
 
@@ -80,8 +85,9 @@ func loginStatusCommand(rt *Runtime) *cobra.Command {
 			if base == "" {
 				base = config.DefaultBaseDir()
 			}
-			_, err := credential.NewFileStore(base).Load("115", rt.Profile)
-			meta := contract.Meta{Provider: "115", Profile: rt.Profile, RequestID: requestID()}
+			providerName := rt.providerName()
+			_, err := credential.NewFileStore(base).Load(providerName, rt.Profile)
+			meta := contract.Meta{Provider: providerName, Profile: rt.Profile, RequestID: requestID()}
 			if rt.JSON {
 				code := output.WriteOK(os.Stdout, os.Stderr, meta, map[string]any{"authenticated": err == nil})
 				os.Exit(code)
@@ -104,8 +110,9 @@ func logoutCommand(rt *Runtime) *cobra.Command {
 			if base == "" {
 				base = config.DefaultBaseDir()
 			}
-			err := credential.NewFileStore(base).Delete("115", rt.Profile)
-			meta := contract.Meta{Provider: "115", Profile: rt.Profile, RequestID: requestID()}
+			providerName := rt.providerName()
+			err := credential.NewFileStore(base).Delete(providerName, rt.Profile)
+			meta := contract.Meta{Provider: providerName, Profile: rt.Profile, RequestID: requestID()}
 			if rt.JSON {
 				code := output.WriteOK(os.Stdout, os.Stderr, meta, map[string]any{"logged_out": err == nil})
 				os.Exit(code)
@@ -166,6 +173,58 @@ func loginQRCommand(rt *Runtime) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&source, "source", "linux", "115 login source: linux, web, android, etc.")
+	return cmd
+}
+
+func loginRefreshTokenCommand(rt *Runtime) *cobra.Command {
+	var refreshToken string
+	var clientID string
+	var clientSecret string
+	var skipCheck bool
+	cmd := &cobra.Command{
+		Use: "refresh-token",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cred := modelBaidu.Credential{
+				RefreshToken: refreshToken,
+				ClientID:     clientID,
+				ClientSecret: clientSecret,
+			}.WithDefaults()
+			if cred.RefreshToken == "" {
+				return fmt.Errorf("missing refresh token")
+			}
+			if !skipCheck {
+				c := clientBaidu.New(2)
+				c.ImportCredential(cred)
+				if err := c.RefreshToken(cmd.Context()); err != nil {
+					handleErr(rt, contract.Meta{Provider: "baidu", Profile: rt.Profile, RequestID: requestID()}, err)
+					return nil
+				}
+				cred = c.Credential()
+			}
+			base := rt.ConfigDir
+			if base == "" {
+				base = config.DefaultBaseDir()
+			}
+			payload, _ := json.Marshal(cred)
+			if err := credential.NewFileStore(base).Save("baidu", rt.Profile, payload); err != nil {
+				return err
+			}
+			meta := contract.Meta{Provider: "baidu", Profile: rt.Profile, RequestID: requestID()}
+			if rt.JSON {
+				code := output.WriteOK(os.Stdout, os.Stderr, meta, map[string]any{
+					"authenticated": true,
+					"refresh_token": cred.RedactedRefreshToken(),
+				})
+				os.Exit(code)
+			}
+			fmt.Fprintf(os.Stdout, "Logged in to Baidu with refresh token %s\n", cred.RedactedRefreshToken())
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&refreshToken, "token", "", "Baidu refresh token")
+	cmd.Flags().StringVar(&clientID, "client-id", "", "Baidu OAuth client id")
+	cmd.Flags().StringVar(&clientSecret, "client-secret", "", "Baidu OAuth client secret")
+	cmd.Flags().BoolVar(&skipCheck, "skip-check", false, "store credential without remote verification")
 	return cmd
 }
 
@@ -270,4 +329,3 @@ func loginWaitCommand(rt *Runtime) *cobra.Command {
 	}
 	return cmd
 }
-

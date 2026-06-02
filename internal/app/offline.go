@@ -29,6 +29,10 @@ func offlineCommand(rt *Runtime) *cobra.Command {
 		Short: "Add offline download task",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if rt.providerName() != "115" {
+				handleErr(rt, contract.Meta{Provider: rt.providerName(), Profile: rt.Profile, RequestID: requestID()}, fmt.Errorf("offline task is not supported by %s", rt.providerName()))
+				return nil
+			}
 			url := args[0]
 			c, meta, err := getClient(rt, cmd.Context())
 			if err != nil {
@@ -75,6 +79,10 @@ func offlineCommand(rt *Runtime) *cobra.Command {
 		Short: "Delete offline download task",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if rt.providerName() != "115" {
+				handleErr(rt, contract.Meta{Provider: rt.providerName(), Profile: rt.Profile, RequestID: requestID()}, fmt.Errorf("offline task is not supported by %s", rt.providerName()))
+				return nil
+			}
 			gid := args[0]
 			c, meta, err := getClient(rt, cmd.Context())
 			if err != nil {
@@ -118,6 +126,10 @@ func offlineCommand(rt *Runtime) *cobra.Command {
 
 func runOfflineList(rt *Runtime) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
+		if rt.providerName() != "115" {
+			handleErr(rt, contract.Meta{Provider: rt.providerName(), Profile: rt.Profile, RequestID: requestID()}, fmt.Errorf("offline task is not supported by %s", rt.providerName()))
+			return nil
+		}
 		c, meta, err := getClient(rt, cmd.Context())
 		if err != nil {
 			handleErr(rt, meta, err)
@@ -151,6 +163,10 @@ func runOfflineList(rt *Runtime) func(*cobra.Command, []string) error {
 
 func runOfflineWait(rt *Runtime, gid string, interval, timeout time.Duration) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
+		if rt.providerName() != "115" {
+			handleErr(rt, contract.Meta{Provider: rt.providerName(), Profile: rt.Profile, RequestID: requestID()}, fmt.Errorf("offline task is not supported by %s", rt.providerName()))
+			return nil
+		}
 		c, meta, err := getClient(rt, cmd.Context())
 		if err != nil {
 			handleErr(rt, meta, err)

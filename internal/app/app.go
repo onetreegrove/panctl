@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/spf13/cobra"
 	client115 "github.com/justonetree/pan-cli/providers/115/client"
 	commands115 "github.com/justonetree/pan-cli/providers/115/commands"
+	"github.com/spf13/cobra"
 )
 
 type Options struct {
@@ -54,4 +54,11 @@ func Run(opts Options) int {
 
 func requestID() string {
 	return "req_" + time.Now().UTC().Format("20060102_150405")
+}
+
+func (rt *Runtime) providerName() string {
+	if rt.Options.DefaultProvider != "" {
+		return rt.Options.DefaultProvider
+	}
+	return "115"
 }
