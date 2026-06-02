@@ -1,0 +1,41 @@
+package client
+
+import (
+	"context"
+
+	driver115 "github.com/SheltonZhu/115driver/pkg/driver"
+	model115 "github.com/justonetree/pan-cli/providers/115/model"
+	"golang.org/x/time/rate"
+)
+
+type Client struct {
+	raw     *driver115.Pan115Client
+	limiter *rate.Limiter
+}
+
+func New(requestsPerSecond float64) *Client {
+	c := &Client{raw: driver115.New(driver115.UA("Mozilla/5.0 115Browser/"+DefaultAppVersion))}
+	if requestsPerSecond > 0 {
+		c.limiter = rate.NewLimiter(rate.Limit(requestsPerSecond), 1)
+	}
+	return c
+}
+
+func (c *Client) Wait(ctx context.Context) error {
+	if c.limiter == nil {
+		return nil
+	}
+	return c.limiter.Wait(ctx)
+}
+
+func (c *Client) LoginCookie(ctx context.Context, cred model115.Credential) error {
+	if err := c.Wait(ctx); err != nil {
+		return err
+	}
+	rawCred := &driver115.Credential{}
+	if err := rawCred.FromCookie(cred.Cookie()); err != nil {
+		return err
+	}
+	c.raw.ImportCredential(rawCred)
+	return c.raw.LoginCheck()
+}
