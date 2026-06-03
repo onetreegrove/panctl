@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/justonetree/pan-cli/internal/config"
-	"github.com/justonetree/pan-cli/internal/credential"
-	"github.com/justonetree/pan-cli/pkg/contract"
-	client115 "github.com/justonetree/pan-cli/providers/115/client"
-	model115 "github.com/justonetree/pan-cli/providers/115/model"
+	"github.com/onetreegrove/panctl/internal/config"
+	"github.com/onetreegrove/panctl/internal/credential"
+	"github.com/onetreegrove/panctl/pkg/contract"
+	client115 "github.com/onetreegrove/panctl/providers/115/client"
+	model115 "github.com/onetreegrove/panctl/providers/115/model"
 )
 
 type resolverLister struct {

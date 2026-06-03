@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/justonetree/pan-cli/internal/output"
-	"github.com/justonetree/pan-cli/internal/resolver"
-	"github.com/justonetree/pan-cli/pkg/contract"
-	client115 "github.com/justonetree/pan-cli/providers/115/client"
+	"github.com/onetreegrove/panctl/internal/output"
+	"github.com/onetreegrove/panctl/internal/resolver"
+	"github.com/onetreegrove/panctl/pkg/contract"
+	client115 "github.com/onetreegrove/panctl/providers/115/client"
 	"github.com/spf13/cobra"
 )
 

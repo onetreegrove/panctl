@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/justonetree/pan-cli/pkg/contract"
+	"github.com/onetreegrove/panctl/pkg/contract"
 )
 
 func WriteOK(stdout, stderr io.Writer, meta contract.Meta, data any) int {

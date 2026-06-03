@@ -12,7 +12,7 @@ import (
 
 	driver115 "github.com/SheltonZhu/115driver/pkg/driver"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	model115 "github.com/justonetree/pan-cli/providers/115/model"
+	model115 "github.com/onetreegrove/panctl/providers/115/model"
 )
 
 // Upload uploads a local file to the specified target directory ID on 115.
@@ -115,7 +115,7 @@ func (c *Client) uploadByOSS(ctx context.Context, params *driver115.UploadOSSPar
 	}
 
 	var bodyBytes []byte
-	
+
 	// Wrap reader for context cancellation and progress updates
 	var totalRead int64
 	wrappedReader := &progressReader{
@@ -202,7 +202,7 @@ func (c *Client) uploadByMultipart(ctx context.Context, params *driver115.Upload
 	defer ticker.Stop()
 
 	completedNum := atomic.Int32{}
-	
+
 	// Upload chunks sequentially to honor oss.Sequential()
 	for _, chunk := range chunks {
 		select {

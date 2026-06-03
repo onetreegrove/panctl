@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	modelAliyun "github.com/justonetree/pan-cli/providers/aliyun/model"
+	modelAliyun "github.com/onetreegrove/panctl/providers/aliyun/model"
 )
 
 type uploadCreateResp struct {

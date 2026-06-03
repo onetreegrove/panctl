@@ -10,8 +10,8 @@ import (
 )
 
 func TestAppVersionCache(t *testing.T) {
-	cachePath := filepath.Join(os.TempDir(), "pan-cli-115-appver.json")
-	
+	cachePath := filepath.Join(os.TempDir(), "panctl-115-appver.json")
+
 	// Ensure a clean slate
 	_ = os.Remove(cachePath)
 	defer func() {

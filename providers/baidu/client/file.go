@@ -7,7 +7,7 @@ import (
 	"path"
 	"strconv"
 
-	modelBaidu "github.com/justonetree/pan-cli/providers/baidu/model"
+	modelBaidu "github.com/onetreegrove/panctl/providers/baidu/model"
 )
 
 type ListResult struct {

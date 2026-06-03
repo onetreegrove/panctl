@@ -31,9 +31,18 @@ func TestPathsDefaultEmptyProfile(t *testing.T) {
 
 func TestDefaultBaseDirUsesEnvironmentOverride(t *testing.T) {
 	baseDir := t.TempDir()
-	t.Setenv("PAN_CLI_CONFIG_DIR", baseDir)
+	t.Setenv("PANCTL_CONFIG_DIR", baseDir)
 
 	if got := DefaultBaseDir(); got != baseDir {
 		t.Fatalf("default base dir = %q, want %q", got, baseDir)
+	}
+}
+
+func TestDefaultBaseDirIgnoresLegacyEnvironmentOverride(t *testing.T) {
+	legacyDir := t.TempDir()
+	t.Setenv("PAN_CLI_CONFIG_DIR", legacyDir)
+
+	if got := DefaultBaseDir(); got == legacyDir {
+		t.Fatalf("default base dir used legacy PAN_CLI_CONFIG_DIR: %q", got)
 	}
 }

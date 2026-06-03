@@ -3,7 +3,7 @@ package client
 import (
 	"strings"
 
-	"github.com/justonetree/pan-cli/pkg/contract"
+	"github.com/onetreegrove/panctl/pkg/contract"
 )
 
 func MapError(err error) contract.Error {

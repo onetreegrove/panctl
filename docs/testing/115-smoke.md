@@ -3,7 +3,7 @@
 Use an isolated config directory:
 
 ```bash
-export PAN_CLI_CONFIG_DIR=/tmp/pan-cli-115-smoke
+export PANCTL_CONFIG_DIR=/tmp/panctl-115-smoke
 ```
 
 Login:
@@ -23,7 +23,7 @@ go run ./cmd/115-cli --json download /path/to/small-file
 Mutation checks in a disposable directory:
 
 ```bash
-go run ./cmd/115-cli --json mkdir / pan-cli-smoke
-go run ./cmd/115-cli --json rename /pan-cli-smoke pan-cli-smoke-renamed
-go run ./cmd/115-cli --json rm /pan-cli-smoke-renamed
+go run ./cmd/115-cli --json mkdir / panctl-smoke
+go run ./cmd/115-cli --json rename /panctl-smoke panctl-smoke-renamed
+go run ./cmd/115-cli --json rm /panctl-smoke-renamed
 ```

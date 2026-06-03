@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/justonetree/pan-cli/pkg/contract"
+	"github.com/onetreegrove/panctl/pkg/contract"
 )
 
 type fakeLister struct {
@@ -59,7 +59,7 @@ func TestResolvePath(t *testing.T) {
 
 func TestResolvePathPassesCurrentFileInfoToLister(t *testing.T) {
 	l := &pathLister{children: map[string][]contract.FileInfo{
-		"/":    {{ID: "fsid-docs", Name: "docs", Type: contract.FileTypeDir, Path: "/docs", Provider: "baidu"}},
+		"/":     {{ID: "fsid-docs", Name: "docs", Type: contract.FileTypeDir, Path: "/docs", Provider: "baidu"}},
 		"/docs": {{ID: "fsid-demo", Name: "demo.txt", Type: contract.FileTypeFile, Path: "/docs/demo.txt", Provider: "baidu"}},
 	}}
 

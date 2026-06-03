@@ -1,6 +1,6 @@
 # JSON 输出契约
 
-本文档定义 `pan`、`115-cli`、`baidu-cli`、`aliyun-cli` 和所有 provider 特殊命令的机器输出格式。
+本文档定义 `panctl`、`115-cli`、`baidu-cli`、`aliyun-cli` 和所有 provider 特殊命令的机器输出格式。
 
 ## 基本规则
 
@@ -62,7 +62,7 @@
   "error": {
     "code": "AUTH_REQUIRED",
     "message": "Current profile is not authenticated.",
-    "detail": "Run `pan login 115` to authenticate this profile.",
+    "detail": "Run `panctl login 115` to authenticate this profile.",
     "retryable": false
   },
   "meta": {

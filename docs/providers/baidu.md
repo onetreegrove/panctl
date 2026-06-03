@@ -1,15 +1,15 @@
 # 百度网盘 Provider 实现方案
 
-百度网盘 provider 接入 `pan-cli` 的公共契约。当前实现以 `tmp/drivers/baidu_netdisk` 为主参考，优先支持主账号文件系统能力；分享链接读取参考 `tmp/drivers/baidu_share`，后续作为特殊命令单独接入。
+百度网盘 provider 接入 `panctl` 的公共契约。当前实现以 `tmp/drivers/baidu_netdisk` 为主参考，优先支持主账号文件系统能力；分享链接读取参考 `tmp/drivers/baidu_share`，后续作为特殊命令单独接入。
 
 ## 入口
 
 ```bash
-pan ls baidu:/资料
+panctl ls baidu:/资料
 baidu-cli ls /资料
 ```
 
-`baidu-cli <cmd>` 等价于 `pan --provider baidu <cmd>`。当前 `pan` 主入口仍以 115 为默认 provider，跨 provider 参数解析后续统一补齐。
+`baidu-cli <cmd>` 等价于 `panctl --provider baidu <cmd>`。当前 `panctl` 主入口仍以 115 为默认 provider，跨 provider 参数解析后续统一补齐。
 
 ## 认证
 
@@ -53,7 +53,7 @@ baidu-cli login refresh-token --token <refresh-token>
 
 ## 公共命令映射
 
-| pan-cli 命令 | 百度 API 参考 |
+| panctl 命令 | 百度 API 参考 |
 | --- | --- |
 | `login refresh-token` | `https://openapi.baidu.com/oauth/2.0/token` |
 | `login status` | 本地凭证存在性检查 |
@@ -76,7 +76,7 @@ baidu-cli share-ls <share-url-or-surl> [dir]
 baidu-cli share-download <share-url-or-surl> <file-id>
 ```
 
-该路线依赖 `surl/pwd/BDUSS`，只提供 list 和 download，不支持文件变动或上传。它应作为 provider 特殊命令实现，不参与 `pan ls baidu:/path` 的主账号文件树。
+该路线依赖 `surl/pwd/BDUSS`，只提供 list 和 download，不支持文件变动或上传。它应作为 provider 特殊命令实现，不参与 `panctl ls baidu:/path` 的主账号文件树。
 
 ## 暂不实现
 

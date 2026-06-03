@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	driver115 "github.com/SheltonZhu/115driver/pkg/driver"
-	model115 "github.com/justonetree/pan-cli/providers/115/model"
+	model115 "github.com/onetreegrove/panctl/providers/115/model"
 )
 
 type ListResult struct {

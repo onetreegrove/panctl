@@ -1,12 +1,12 @@
-# pan-cli - 多网盘命令行平台设计方案
+# panctl - 多网盘命令行平台设计方案
 
-`pan-cli` 是一个面向人类用户、脚本和 AI Agent 的多网盘 CLI 平台。项目先实现 115 网盘，后续扩展百度网盘、阿里云盘等 provider。核心原则是：**统一 CLI 契约、统一凭证与输出基础设施、provider 独立适配具体网盘能力**。
+`panctl` 是一个面向人类用户、脚本和 AI Agent 的多网盘 CLI 平台。项目先实现 115 网盘，后续扩展百度网盘、阿里云盘等 provider。核心原则是：**统一 CLI 契约、统一凭证与输出基础设施、provider 独立适配具体网盘能力**。
 
 ---
 
 ## 设计目标
 
-1. 提供统一入口 `pan`，支持跨网盘操作和统一 target 语法。
+1. 提供统一入口 `panctl`，支持跨网盘操作和统一 target 语法。
 2. 保留 provider 专属入口，例如 `115-cli`、`baidu-cli`、`aliyun-cli`，降低单网盘用户的使用成本。
 3. 所有入口共享同一套 Go core、JSON 输出契约、错误码、配置、凭证和 npm 安装逻辑。
 4. provider 只实现具体网盘 API、认证流程和差异化能力，避免复制 CLI 框架。
@@ -36,7 +36,7 @@ pan/
 │       └── aliyun.md
 │
 ├── cmd/
-│   ├── pan/                       # 统一入口：pan ls 115:/path
+│   ├── panctl/                    # 统一入口：panctl ls 115:/path
 │   ├── 115-cli/                   # 兼容入口：115-cli ls /path
 │   ├── baidu-cli/                 # 兼容入口：baidu-cli ls /path
 │   └── aliyun-cli/                # 兼容入口：aliyun-cli ls /path
@@ -46,7 +46,7 @@ pan/
 │   ├── config/                    # profile、配置目录、权限、迁移
 │   ├── credential/                # Keychain/Credential Manager/Secret Service/file fallback
 │   ├── output/                    # JSON、人类表格、错误输出
-│   ├── resolver/                  # pan target 解析：115:/a、baidu:/b
+│   ├── resolver/                  # panctl target 解析：115:/a、baidu:/b
 │   ├── transfer/                  # 上传、下载、进度、断点续传通用能力
 │   └── release/                   # version、build metadata
 │
@@ -72,7 +72,7 @@ pan/
 │       └── provider.go
 │
 ├── npm/
-│   ├── pan-cli/
+│   ├── panctl/
 │   ├── 115-cli/
 │   ├── baidu-cli/
 │   └── aliyun-cli/
@@ -83,7 +83,7 @@ pan/
 │   └── install-wizard.js
 │
 └── skills/
-    ├── pan-cli/
+    ├── panctl/
     ├── 115-cli/
     ├── baidu-cli/
     └── aliyun-cli/
@@ -95,13 +95,13 @@ pan/
 
 ### 统一入口
 
-`pan` 是完整能力入口，target 必须显式带 provider：
+`panctl` 是完整能力入口，target 必须显式带 provider：
 
 ```bash
-pan ls 115:/电影
-pan ls baidu:/资料
-pan download aliyun:/backup/a.zip --output ./a.zip
-pan cp 115:/a.zip aliyun:/backup/
+panctl ls 115:/电影
+panctl ls baidu:/资料
+panctl download aliyun:/backup/a.zip --output ./a.zip
+panctl cp 115:/a.zip aliyun:/backup/
 ```
 
 统一入口适合跨网盘迁移、聚合搜索、AI Agent 编排和自动化脚本。
@@ -120,8 +120,8 @@ aliyun-cli ls /backup
 
 ```bash
 115-cli ls /电影
-pan --provider 115 ls /电影
-pan ls 115:/电影
+panctl --provider 115 ls /电影
+panctl ls 115:/电影
 ```
 
 ---
@@ -186,10 +186,10 @@ type Capabilities struct {
 
 ## 配置与凭证目录
 
-统一使用 `~/.config/pan-cli`，不要为每个网盘建立互不兼容的配置体系：
+统一使用 `~/.config/panctl`，不要为每个网盘建立互不兼容的配置体系：
 
 ```text
-~/.config/pan-cli/
+~/.config/panctl/
 ├── config.json
 ├── profiles/
 │   ├── 115.default.json
@@ -236,7 +236,7 @@ type Capabilities struct {
 
 | npm 包 | bin | 默认行为 |
 | --- | --- | --- |
-| `pan-cli` | `pan` | 统一入口 |
+| `panctl` | `panctl` | 统一入口 |
 | `115-cli` | `115-cli` | 默认 provider 为 `115` |
 | `baidu-cli` | `baidu-cli` | 默认 provider 为 `baidu` |
 | `aliyun-cli` | `aliyun-cli` | 默认 provider 为 `aliyun` |
@@ -263,8 +263,8 @@ npm 包装层只负责：
 
 ## 开发顺序
 
-1. 建立根级 `pan-cli` monorepo 结构和通用契约文档。
-2. 实现 `pan` 入口、公共输出、错误码、配置、凭证和 provider registry。
+1. 建立根级 `panctl` monorepo 结构和通用契约文档。
+2. 实现 `panctl` 入口、公共输出、错误码、配置、凭证和 provider registry。
 3. 将 115 作为第一个 provider 落地，实现登录、`ls`、`download`、`search`。
 4. 补齐 115 变更类命令和离线任务特殊命令。
 5. 增加 `115-cli` npm 包和 Skill。

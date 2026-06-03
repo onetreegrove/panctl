@@ -1,18 +1,18 @@
 # 阿里云盘 Provider 实现方案
 
-阿里云盘 provider 接入 `pan-cli` 的公共契约。当前方案以 `tmp/drivers/aliyundrive_open` 为主参考，优先支持主账号文件系统能力；分享链接读取参考 `tmp/drivers/aliyundrive_share`，后续作为 provider 特殊命令单独接入。
+阿里云盘 provider 接入 `panctl` 的公共契约。当前方案以 `tmp/drivers/aliyundrive_open` 为主参考，优先支持主账号文件系统能力；分享链接读取参考 `tmp/drivers/aliyundrive_share`，后续作为 provider 特殊命令单独接入。
 
 `tmp/drivers/aliyundrive` 是非开放接口路线，依赖设备签名和 `device_id`，上游已经标注 deprecated。第一阶段不采用该路线，避免把不稳定认证流程引入公共 provider。
 
 ## 入口
 
 ```bash
-pan ls aliyun:/备份
+panctl ls aliyun:/备份
 aliyun-cli ls /备份
 aliyun-cli login refresh-token --token <refresh-token>
 ```
 
-`aliyun-cli <cmd>` 等价于 `pan --provider aliyun <cmd>`。当前 `pan` 主入口仍以 115 为默认 provider，跨 provider 参数解析后续统一补齐。
+`aliyun-cli <cmd>` 等价于 `panctl --provider aliyun <cmd>`。当前 `panctl` 主入口仍以 115 为默认 provider，跨 provider 参数解析后续统一补齐。
 
 ## 认证
 
@@ -65,7 +65,7 @@ aliyun-cli login refresh-token --token <refresh-token>
 
 ## 公共命令映射
 
-| pan-cli 命令 | 阿里云盘 OpenAPI 参考 |
+| panctl 命令 | 阿里云盘 OpenAPI 参考 |
 | --- | --- |
 | `login refresh-token` | `/oauth/access_token` 或自定义 `oauth_token_url` |
 | `login status` | 本地凭证存在性检查，可选调用 `/adrive/v1.0/user/getDriveInfo` |
@@ -174,7 +174,7 @@ aliyun-cli share-ls <share-url-or-id> [dir]
 aliyun-cli share-download <share-url-or-id> <file-id>
 ```
 
-该路线依赖 `share_id/share_pwd/share_token`，可列分享目录并获取下载链接，不支持文件变动或上传。它应作为 provider 特殊命令实现，不参与 `pan ls aliyun:/path` 的主账号文件树。
+该路线依赖 `share_id/share_pwd/share_token`，可列分享目录并获取下载链接，不支持文件变动或上传。它应作为 provider 特殊命令实现，不参与 `panctl ls aliyun:/path` 的主账号文件树。
 
 ## 暂不实现
 

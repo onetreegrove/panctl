@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/justonetree/pan-cli/pkg/contract"
+	"github.com/onetreegrove/panctl/pkg/contract"
 )
 
 type Lister interface {

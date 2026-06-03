@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/justonetree/pan-cli/internal/output"
-	"github.com/justonetree/pan-cli/internal/resolver"
-	"github.com/justonetree/pan-cli/pkg/contract"
+	"github.com/onetreegrove/panctl/internal/output"
+	"github.com/onetreegrove/panctl/internal/resolver"
+	"github.com/onetreegrove/panctl/pkg/contract"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +21,7 @@ func offlineCommand(rt *Runtime) *cobra.Command {
 	listCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List offline tasks",
-		RunE: runOfflineList(rt),
+		RunE:  runOfflineList(rt),
 	}
 
 	addCmd := &cobra.Command{

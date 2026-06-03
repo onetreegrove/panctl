@@ -24,6 +24,29 @@ func Test115CLIStatusJSONIsValid(t *testing.T) {
 	}
 }
 
+func TestPanctlStatusJSONIsValid(t *testing.T) {
+	cmd := exec.Command("go", "run", "../../cmd/panctl", "--json", "--config-dir", t.TempDir(), "login", "status")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("command failed: %v", err)
+	}
+	var got struct {
+		Status string `json:"status"`
+		Meta   struct {
+			Provider string `json:"provider"`
+		} `json:"meta"`
+		Data struct {
+			Authenticated bool `json:"authenticated"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(out, &got); err != nil {
+		t.Fatalf("stdout is not JSON: %s", out)
+	}
+	if got.Status != "ok" || got.Meta.Provider != "115" || got.Data.Authenticated {
+		t.Fatalf("unexpected response: %+v", got)
+	}
+}
+
 func TestBaiduCLIStatusJSONIsValid(t *testing.T) {
 	cmd := exec.Command("go", "run", "../../cmd/baidu-cli", "--json", "--config-dir", t.TempDir(), "login", "status")
 	out, err := cmd.Output()

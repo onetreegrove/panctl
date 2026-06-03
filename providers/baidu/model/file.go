@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/justonetree/pan-cli/pkg/contract"
+	"github.com/onetreegrove/panctl/pkg/contract"
 )
 
 type File struct {

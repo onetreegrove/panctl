@@ -12,13 +12,13 @@ type Paths struct {
 }
 
 func DefaultBaseDir() string {
-	if dir := os.Getenv("PAN_CLI_CONFIG_DIR"); dir != "" {
+	if dir := os.Getenv("PANCTL_CONFIG_DIR"); dir != "" {
 		return dir
 	}
 	if dir, err := os.UserConfigDir(); err == nil {
-		return filepath.Join(dir, "pan-cli")
+		return filepath.Join(dir, "panctl")
 	}
-	return filepath.Join(".", ".pan-cli")
+	return filepath.Join(".", ".panctl")
 }
 
 func NewPaths(baseDir, providerName, profile string) Paths {

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	driver115 "github.com/SheltonZhu/115driver/pkg/driver"
-	model115 "github.com/justonetree/pan-cli/providers/115/model"
+	model115 "github.com/onetreegrove/panctl/providers/115/model"
 	"golang.org/x/time/rate"
 )
 
@@ -14,7 +14,7 @@ type Client struct {
 }
 
 func New(requestsPerSecond float64) *Client {
-	c := &Client{raw: driver115.New(driver115.UA("Mozilla/5.0 115Browser/"+DefaultAppVersion))}
+	c := &Client{raw: driver115.New(driver115.UA("Mozilla/5.0 115Browser/" + DefaultAppVersion))}
 	if requestsPerSecond > 0 {
 		c.limiter = rate.NewLimiter(rate.Limit(requestsPerSecond), 1)
 	}

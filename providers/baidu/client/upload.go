@@ -9,7 +9,7 @@ import (
 	"path"
 	"strconv"
 
-	modelBaidu "github.com/justonetree/pan-cli/providers/baidu/model"
+	modelBaidu "github.com/onetreegrove/panctl/providers/baidu/model"
 )
 
 const defaultSliceSize int64 = 4 * 1024 * 1024

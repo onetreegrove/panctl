@@ -1,6 +1,6 @@
 package baidu
 
-import "github.com/justonetree/pan-cli/pkg/provider"
+import "github.com/onetreegrove/panctl/pkg/provider"
 
 type Provider struct{}
 

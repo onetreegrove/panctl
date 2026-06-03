@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	modelAliyun "github.com/justonetree/pan-cli/providers/aliyun/model"
+	modelAliyun "github.com/onetreegrove/panctl/providers/aliyun/model"
 )
 
 const (
@@ -62,7 +62,7 @@ func New(opts Options) *Client {
 	c := &Client{
 		http: resty.New().
 			SetTimeout(30*time.Second).
-			SetHeader("User-Agent", "pan-cli").
+			SetHeader("User-Agent", "panctl").
 			SetHeader("Content-Type", "application/json"),
 		apiBaseURL:    strings.TrimRight(apiBaseURL, "/"),
 		oauthTokenURL: oauthURL,

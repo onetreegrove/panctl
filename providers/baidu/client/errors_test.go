@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/justonetree/pan-cli/pkg/contract"
+	"github.com/onetreegrove/panctl/pkg/contract"
 )
 
 func TestMapErrorAuthExpired(t *testing.T) {

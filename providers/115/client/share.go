@@ -9,7 +9,7 @@ import (
 	"time"
 
 	driver115 "github.com/SheltonZhu/115driver/pkg/driver"
-	"github.com/justonetree/pan-cli/pkg/contract"
+	"github.com/onetreegrove/panctl/pkg/contract"
 )
 
 // ParseShareURL parses the share URL and extracts the share code and access code.
@@ -41,7 +41,7 @@ func (c *Client) ShareList(ctx context.Context, shareCode, receiveCode, dirID st
 		dirID = "0"
 	}
 	offset := (page - 1) * limit
-	
+
 	type shareFile struct {
 		FileID     string                `json:"fid"`
 		CategoryID driver115.IntString   `json:"cid"`
@@ -94,7 +94,7 @@ func (c *Client) ShareList(ctx context.Context, shareCode, receiveCode, dirID st
 		if isDir {
 			fileID = string(sf.CategoryID)
 		}
-		
+
 		fileType := contract.FileTypeFile
 		if isDir {
 			fileType = contract.FileTypeDir

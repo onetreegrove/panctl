@@ -1,4 +1,4 @@
-module github.com/justonetree/pan-cli
+module github.com/onetreegrove/panctl
 
 go 1.25.0
 

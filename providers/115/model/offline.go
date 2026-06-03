@@ -1,6 +1,6 @@
 package model
 
-import "github.com/justonetree/pan-cli/pkg/contract"
+import "github.com/onetreegrove/panctl/pkg/contract"
 
 type OfflineTask struct {
 	GID        string

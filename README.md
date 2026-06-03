@@ -15,7 +15,7 @@
 - **功能完备 (Phase 1)** — 首期已支持 Cookie/扫码登录、状态查询、绝对路径/ID 级别解析、常规文件系统变动（ls/mkdir/mv/cp/rename/rm）、安全下载及离线下载任务控制。
 - **原子性下载保护** — 采用临时文件写入 + 成功后原子重命名的机制，防止中途网络中断或异常退出 clobber（损坏）本地已有的目标文件。
 - **三层架构设计** — 共享的核心凭证存储（Keychain/OS 密钥链与本地 0600 文件回退）、路径解析层，以及插拔式的网盘 Provider 层，保持架构极度清爽。
-- **双入口调用** — 支持统一入口 `pan` 跨网盘操作，同时支持专属入口 `115-cli`，直接绑定默认 provider 降低使用成本。
+- **双入口调用** — 支持统一入口 `panctl` 跨网盘操作，同时支持专属入口 `115-cli`，直接绑定默认 provider 降低使用成本。
 
 ---
 
@@ -42,8 +42,8 @@
 git clone https://github.com/onetreegrove/panctl.git
 cd panctl
 
-# 编译出多网盘主入口 (pan) 以及 115 专属入口 (115-cli)
-go build ./cmd/pan ./cmd/115-cli
+# 编译出多网盘主入口 (panctl) 以及 115 专属入口 (115-cli)
+go build ./cmd/panctl ./cmd/115-cli
 ```
 
 ### 2. 账号登录（人类用户）
@@ -76,7 +76,7 @@ go build ./cmd/pan ./cmd/115-cli
 
 如果您是 AI 编码助手或 Agent，请按如下流程操作：
 
-1. **调用构建**: 运行 `go test ./... && go build ./cmd/pan ./cmd/115-cli` 确保本地环境可用。
+1. **调用构建**: 运行 `go test ./... && go build ./cmd/panctl ./cmd/115-cli` 确保本地环境可用。
 2. **凭证检查**: 运行 `./115-cli --json login status` 获取登录状态。若未登录，则读取环境变量中的 Cookie 或引导人类用户扫码。
 3. **调用参数**: 始终在命令后追加 `--json` 参数，获取易于解析的机器响应对象。例如：
    ```bash
@@ -87,11 +87,11 @@ go build ./cmd/pan ./cmd/115-cli
 
 ## 双层命令调用
 
-### 1. 统一入口 `pan`
+### 1. 统一入口 `panctl`
 适用于跨网盘聚合操作，target 必须显式指定 provider 命名空间：
 ```bash
-./pan ls 115:/电影
-./pan cp 115:/a.zip baidu:/backup/  # 跨网盘迁移（规划中）
+./panctl ls 115:/电影
+./panctl cp 115:/a.zip baidu:/backup/  # 跨网盘迁移（规划中）
 ```
 
 ### 2. Provider 专属入口 `115-cli`

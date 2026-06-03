@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	model115 "github.com/justonetree/pan-cli/providers/115/model"
+	model115 "github.com/onetreegrove/panctl/providers/115/model"
 )
 
 func ParseCookie(raw string) (model115.Credential, error) {

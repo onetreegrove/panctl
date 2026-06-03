@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	modelBaidu "github.com/justonetree/pan-cli/providers/baidu/model"
+	modelBaidu "github.com/onetreegrove/panctl/providers/baidu/model"
 	"golang.org/x/time/rate"
 )
 
 const (
 	apiBaseURL       = "https://pan.baidu.com/rest/2.0"
-	oauthTokenURL   = "https://openapi.baidu.com/oauth/2.0/token"
+	oauthTokenURL    = "https://openapi.baidu.com/oauth/2.0/token"
 	defaultUploadURL = "https://d.pcs.baidu.com"
 )
 
@@ -27,7 +27,7 @@ type Client struct {
 func New(requestsPerSecond float64) *Client {
 	c := &Client{
 		http: resty.New().
-			SetTimeout(30 * time.Second).
+			SetTimeout(30*time.Second).
 			SetHeader("User-Agent", "pan.baidu.com"),
 	}
 	if requestsPerSecond > 0 {

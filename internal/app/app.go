@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	client115 "github.com/justonetree/pan-cli/providers/115/client"
-	commands115 "github.com/justonetree/pan-cli/providers/115/commands"
+	client115 "github.com/onetreegrove/panctl/providers/115/client"
+	commands115 "github.com/onetreegrove/panctl/providers/115/commands"
 	"github.com/spf13/cobra"
 )
 

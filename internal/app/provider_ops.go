@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/justonetree/pan-cli/internal/config"
-	"github.com/justonetree/pan-cli/internal/credential"
-	"github.com/justonetree/pan-cli/pkg/contract"
-	client115 "github.com/justonetree/pan-cli/providers/115/client"
-	model115 "github.com/justonetree/pan-cli/providers/115/model"
-	clientAliyun "github.com/justonetree/pan-cli/providers/aliyun/client"
-	modelAliyun "github.com/justonetree/pan-cli/providers/aliyun/model"
-	clientBaidu "github.com/justonetree/pan-cli/providers/baidu/client"
-	modelBaidu "github.com/justonetree/pan-cli/providers/baidu/model"
+	"github.com/onetreegrove/panctl/internal/config"
+	"github.com/onetreegrove/panctl/internal/credential"
+	"github.com/onetreegrove/panctl/pkg/contract"
+	client115 "github.com/onetreegrove/panctl/providers/115/client"
+	model115 "github.com/onetreegrove/panctl/providers/115/model"
+	clientAliyun "github.com/onetreegrove/panctl/providers/aliyun/client"
+	modelAliyun "github.com/onetreegrove/panctl/providers/aliyun/model"
+	clientBaidu "github.com/onetreegrove/panctl/providers/baidu/client"
+	modelBaidu "github.com/onetreegrove/panctl/providers/baidu/model"
 )
 
 type listResult struct {

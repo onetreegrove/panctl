@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/justonetree/pan-cli/providers/aliyun/model"
+	"github.com/onetreegrove/panctl/providers/aliyun/model"
 )
 
 func newTestClient(baseURL string) *Client {

@@ -32,7 +32,7 @@ func (c *Client) ensureAppVersion(ctx context.Context) {
 }
 
 func (c *Client) loadAppVersion(ctx context.Context) string {
-	cachePath := filepath.Join(os.TempDir(), "pan-cli-115-appver.json")
+	cachePath := filepath.Join(os.TempDir(), "panctl-115-appver.json")
 
 	// 1. Try loading version from local cache file
 	if data, err := os.ReadFile(cachePath); err == nil {

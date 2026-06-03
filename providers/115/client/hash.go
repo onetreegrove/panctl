@@ -25,7 +25,7 @@ func PreHash(ctx context.Context, r io.ReadSeeker) (string, error) {
 	h := sha1.New()
 	// Read at most 128 KiB
 	limitReader := io.LimitReader(r, 128*1024)
-	
+
 	// Read in loop to allow context cancellation
 	buf := make([]byte, 32*1024)
 	for {
@@ -75,7 +75,7 @@ func FullHash(ctx context.Context, r io.ReadSeeker, updater HashProgressUpdater)
 		if ctx.Err() != nil {
 			return "", ctx.Err()
 		}
-		
+
 		n, err := r.Read(buf)
 		if n > 0 {
 			if _, wErr := h.Write(buf[:n]); wErr != nil {

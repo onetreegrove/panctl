@@ -4,7 +4,7 @@ import (
 	"context"
 
 	driver115 "github.com/SheltonZhu/115driver/pkg/driver"
-	model115 "github.com/justonetree/pan-cli/providers/115/model"
+	model115 "github.com/onetreegrove/panctl/providers/115/model"
 )
 
 func (c *Client) OfflineList(ctx context.Context) ([]model115.OfflineTask, error) {
@@ -47,7 +47,7 @@ func convertOfflineTasks(tasks []*driver115.OfflineTask) []model115.OfflineTask 
 		} else if t.IsTodo() {
 			statusText = "pending"
 		}
-		
+
 		out = append(out, model115.OfflineTask{
 			GID:        t.InfoHash,
 			Name:       t.Name,

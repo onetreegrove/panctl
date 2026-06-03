@@ -7,5 +7,5 @@ import (
 )
 
 func main() {
-	os.Exit(app.Run(app.Options{BinaryName: "baidu-cli", DefaultProvider: "baidu"}))
+	os.Exit(app.Run(app.Options{BinaryName: "panctl"}))
 }

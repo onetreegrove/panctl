@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/justonetree/pan-cli/internal/app"
+	"github.com/onetreegrove/panctl/internal/app"
 )
 
 func main() {
