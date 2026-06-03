@@ -16,6 +16,8 @@ import (
 	auth115 "github.com/justonetree/pan-cli/providers/115/auth"
 	client115 "github.com/justonetree/pan-cli/providers/115/client"
 	model115 "github.com/justonetree/pan-cli/providers/115/model"
+	clientAliyun "github.com/justonetree/pan-cli/providers/aliyun/client"
+	modelAliyun "github.com/justonetree/pan-cli/providers/aliyun/model"
 	clientBaidu "github.com/justonetree/pan-cli/providers/baidu/client"
 	modelBaidu "github.com/justonetree/pan-cli/providers/baidu/model"
 	"github.com/spf13/cobra"
@@ -24,7 +26,7 @@ import (
 func loginCommand(rt *Runtime) *cobra.Command {
 	cmd := &cobra.Command{Use: "login"}
 	cmd.AddCommand(loginCookieCommand(rt), loginStatusCommand(rt), logoutCommand(rt), loginQRCommand(rt), loginWaitCommand(rt))
-	if rt.providerName() == "baidu" {
+	if rt.providerName() == "baidu" || rt.providerName() == "aliyun" {
 		cmd.AddCommand(loginRefreshTokenCommand(rt))
 	}
 	return cmd
@@ -141,7 +143,7 @@ func loginQRCommand(rt *Runtime) *cobra.Command {
 				base = config.DefaultBaseDir()
 			}
 			dir := filepath.Join(base, "115-login")
-			
+
 			qrSess := auth115.QRSession{
 				SessionID: sessionID,
 				Token:     sess.UID,
@@ -180,10 +182,52 @@ func loginRefreshTokenCommand(rt *Runtime) *cobra.Command {
 	var refreshToken string
 	var clientID string
 	var clientSecret string
+	var oauthTokenURL string
+	var driveType string
 	var skipCheck bool
 	cmd := &cobra.Command{
 		Use: "refresh-token",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if rt.providerName() == "aliyun" {
+				cred := modelAliyun.Credential{
+					RefreshToken:  refreshToken,
+					ClientID:      clientID,
+					ClientSecret:  clientSecret,
+					OAuthTokenURL: oauthTokenURL,
+					DriveType:     driveType,
+				}.WithDefaults()
+				if cred.RefreshToken == "" {
+					return fmt.Errorf("missing refresh token")
+				}
+				if !skipCheck {
+					c := clientAliyun.New(clientAliyun.Options{OAuthTokenURL: cred.OAuthTokenURL})
+					c.ImportCredential(cred)
+					if err := c.RefreshToken(cmd.Context()); err != nil {
+						handleErr(rt, contract.Meta{Provider: "aliyun", Profile: rt.Profile, RequestID: requestID()}, err)
+						return nil
+					}
+					cred = c.Credential()
+				}
+				base := rt.ConfigDir
+				if base == "" {
+					base = config.DefaultBaseDir()
+				}
+				payload, _ := json.Marshal(cred)
+				if err := credential.NewFileStore(base).Save("aliyun", rt.Profile, payload); err != nil {
+					return err
+				}
+				meta := contract.Meta{Provider: "aliyun", Profile: rt.Profile, RequestID: requestID()}
+				if rt.JSON {
+					code := output.WriteOK(os.Stdout, os.Stderr, meta, map[string]any{
+						"authenticated": true,
+						"refresh_token": cred.RedactedRefreshToken(),
+					})
+					os.Exit(code)
+				}
+				fmt.Fprintf(os.Stdout, "Logged in to Aliyun with refresh token %s\n", cred.RedactedRefreshToken())
+				return nil
+			}
+
 			cred := modelBaidu.Credential{
 				RefreshToken: refreshToken,
 				ClientID:     clientID,
@@ -222,8 +266,10 @@ func loginRefreshTokenCommand(rt *Runtime) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&refreshToken, "token", "", "Baidu refresh token")
-	cmd.Flags().StringVar(&clientID, "client-id", "", "Baidu OAuth client id")
-	cmd.Flags().StringVar(&clientSecret, "client-secret", "", "Baidu OAuth client secret")
+	cmd.Flags().StringVar(&clientID, "client-id", "", "OAuth client id")
+	cmd.Flags().StringVar(&clientSecret, "client-secret", "", "OAuth client secret")
+	cmd.Flags().StringVar(&oauthTokenURL, "oauth-token-url", "", "Aliyun OAuth token URL")
+	cmd.Flags().StringVar(&driveType, "drive-type", modelAliyun.DriveTypeResource, "Aliyun drive type: default, resource, backup")
 	cmd.Flags().BoolVar(&skipCheck, "skip-check", false, "store credential without remote verification")
 	return cmd
 }

@@ -44,7 +44,9 @@ func Run(opts Options) int {
 	getJSONHelper := func() bool {
 		return rt.JSON
 	}
-	root.AddCommand(commands115.ShareCommands(getClientHelper, getJSONHelper)...)
+	if rt.providerName() == "115" {
+		root.AddCommand(commands115.ShareCommands(getClientHelper, getJSONHelper)...)
+	}
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		return 1

@@ -11,6 +11,8 @@ import (
 	"github.com/justonetree/pan-cli/pkg/contract"
 	client115 "github.com/justonetree/pan-cli/providers/115/client"
 	model115 "github.com/justonetree/pan-cli/providers/115/model"
+	clientAliyun "github.com/justonetree/pan-cli/providers/aliyun/client"
+	modelAliyun "github.com/justonetree/pan-cli/providers/aliyun/model"
 	clientBaidu "github.com/justonetree/pan-cli/providers/baidu/client"
 	modelBaidu "github.com/justonetree/pan-cli/providers/baidu/model"
 )
@@ -36,7 +38,7 @@ type providerOps interface {
 }
 
 type opsLister struct {
-	ops providerOps
+	ops          providerOps
 	providerName string
 }
 
@@ -78,6 +80,14 @@ func getProviderOps(rt *Runtime, ctx context.Context) (providerOps, contract.Met
 		c := clientBaidu.New(2)
 		c.ImportCredential(cred)
 		return opsBaidu{c: c}, meta, nil
+	case "aliyun":
+		var cred modelAliyun.Credential
+		if err := json.Unmarshal(data, &cred); err != nil {
+			return nil, meta, err
+		}
+		c := clientAliyun.New(clientAliyun.Options{})
+		c.ImportCredential(cred)
+		return opsAliyun{c: c}, meta, nil
 	default:
 		return nil, meta, fmt.Errorf("unsupported provider: %s", providerName)
 	}
@@ -261,4 +271,82 @@ func baiduFile(file contract.FileInfo) modelBaidu.File {
 		IsDir: file.Type == contract.FileTypeDir,
 		Size:  file.Size,
 	}
+}
+
+type opsAliyun struct {
+	c *clientAliyun.Client
+}
+
+func (o opsAliyun) MapError(err error) contract.Error {
+	return clientAliyun.MapError(err)
+}
+
+func (o opsAliyun) List(ctx context.Context, dir contract.FileInfo, page, limit int) (listResult, error) {
+	dirID := dir.ID
+	if dirID == "" || dirID == "0" {
+		dirID = "root"
+	}
+	res, err := o.c.List(ctx, dirID, page, limit)
+	if err != nil {
+		return listResult{}, err
+	}
+	items := make([]contract.FileInfo, 0, len(res.Items))
+	basePath := dir.Path
+	for _, item := range res.Items {
+		items = append(items, item.ToContract(path.Join(basePath, item.Name)))
+	}
+	return listResult{Items: items, Total: res.Total, HasMore: res.HasMore, NextPage: res.NextPage}, nil
+}
+
+func (o opsAliyun) ListChildren(ctx context.Context, dir contract.FileInfo) ([]contract.FileInfo, error) {
+	var all []contract.FileInfo
+	page := 1
+	for {
+		res, err := o.List(ctx, dir, page, 200)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, res.Items...)
+		if !res.HasMore {
+			break
+		}
+		page++
+	}
+	return all, nil
+}
+
+func (o opsAliyun) DownloadURL(ctx context.Context, file contract.FileInfo, userAgent string) (string, map[string][]string, error) {
+	return o.c.DownloadURL(ctx, file.ID)
+}
+
+func (o opsAliyun) Mkdir(ctx context.Context, parent contract.FileInfo, name string) (contract.FileInfo, error) {
+	file, err := o.c.Mkdir(ctx, parent.ID, name)
+	if err != nil {
+		return contract.FileInfo{}, err
+	}
+	return file.ToContract(path.Join(parent.Path, file.Name)), nil
+}
+
+func (o opsAliyun) Move(ctx context.Context, dest contract.FileInfo, files ...contract.FileInfo) error {
+	return o.c.Move(ctx, dest.ID, idsFromFiles(files)...)
+}
+
+func (o opsAliyun) Copy(ctx context.Context, dest contract.FileInfo, files ...contract.FileInfo) error {
+	return o.c.Copy(ctx, dest.ID, idsFromFiles(files)...)
+}
+
+func (o opsAliyun) Rename(ctx context.Context, file contract.FileInfo, newName string) error {
+	return o.c.Rename(ctx, file.ID, newName)
+}
+
+func (o opsAliyun) Delete(ctx context.Context, files ...contract.FileInfo) error {
+	return o.c.Delete(ctx, idsFromFiles(files)...)
+}
+
+func (o opsAliyun) Upload(ctx context.Context, localPath string, dest contract.FileInfo, progress func(float64)) (contract.FileInfo, error) {
+	file, err := o.c.Upload(ctx, localPath, dest.ID, progress)
+	if err != nil {
+		return contract.FileInfo{}, err
+	}
+	return file.ToContract(path.Join(dest.Path, file.Name)), nil
 }
